@@ -1,0 +1,9 @@
+venv
+*.pptx
+*.DataBase
+__pycache__
+*.ipynb
+example
+venv/
+test/
+src/.env
