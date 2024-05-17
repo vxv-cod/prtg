@@ -1,14 +1,38 @@
+__all__ = ["PRTG_Service"]
 import datetime
-
 from time import time
 
-from rich import print
-from DataBase.repositories.repo_servises import DB_Service
-from DataBase.repositories.repo_uow import UnitOfWork
 from loguru import logger
+from rich import print
 
+from DataBase.repositories.repo_service import DB_Service
+from DataBase.repositories.repo_uow import UnitOfWork
+from prtg.prtg_depends import Prtg_depend_UOW, Prtg_depend_historydata_input
 from prtg.prtg_uow import Prtg_UOW
 from prtg.prtg_schema import Prtg_schema_historydata_input
+
+# from tasks.tasks import celery_app
+
+# from test.test_tasks.create_celery import celery_app
+
+
+
+
+# from tasks.collections_tasks import celery_app
+
+# @celery_app.task
+# def eee_task_decor():
+#     # return settings.REDIS_URL
+#     return "hhhhhh"
+
+
+# from tasks.tasks import celery_app_2
+
+
+
+# @celery_app_2.task
+# def PRTG_Service_add_task():
+#     return PRTG_Service().import_historydata_in_DB(uow_prg=Prtg_UOW, uow=UnitOfWork, items=Prtg_schema_historydata_input)
 
 
 class PRTG_Service:
@@ -49,6 +73,7 @@ class PRTG_Service:
         sensors = await self.DB_Service_sensors.get_all(uow)
         # sensors = sensors[-11:]
         sensors = sensors[:50]
+        # print(f"{sensors[0] = }")
         return await uow_prg.query.historydata(sensors, items)
         
 
@@ -64,13 +89,15 @@ class PRTG_Service:
             if current_logging != []:
                 if log_data["id"] in current_logging:
                     res = await uow.logging_download.update_one(log_data)
-                    res = {"status": "update", "id": res}
+                    res = {"date": res, "status": "update"}
                 else:
                     res = await uow.logging_download.add_one(log_data)
-                    res = {"status": "insert", "id": res}
+                    res = {"date": res, "status": "insert"}
             else:
                 res = await uow.logging_download.add_one(log_data)
-                res = {"status": "insert", "id": res}
+                res = {"date": res, "status": "insert"}
+                # res = {"id": res, "status": "insert"}
+
 
             await uow.commit()
             return res
@@ -109,43 +136,37 @@ class PRTG_Service:
 
 
     # @timer_
-    async def import_historydata_in_DB(self, uow_prg, uow: UnitOfWork, items: Prtg_schema_historydata_input):
-        '''Выбираем в интервале началоной и конечной даты (historydata) по дням и импортируем в ДБ с логами в таблицу'''
+    async def import_historydata_in_DB(self, uow_prg: Prtg_UOW, uow: UnitOfWork, items: Prtg_schema_historydata_input):
+        '''Выбираем в интервале начальной и конечной даты (historydata) по дням и импортируем в ДБ с логами в таблицу'''
+
         resulst =[]
         hours = items.hours
         stime = items.stime
         etime = items.etime
 
-        for i in range(items.delta_days + 1):
+        for i in range(items.count_days):
+            curday = items.sdate + datetime.timedelta(days = i)
             try:
                 obj_dict = {}
-                curday = items.sdate + datetime.timedelta(days = i)
                 
                 _items = {"hours": hours, "stime": stime, "etime": etime,  "sdate": curday}
                 import_data = Prtg_schema_historydata_input(**_items)
 
                 data = await self.prtg_get_historydata(uow_prg, uow, import_data)
                 obj_dict =  await self.DB_Service_historydata.save_in_db(uow, data)
-                
+
                 status = True
                 kwargs = {"date": curday, "status": status, **obj_dict}
             except:
                 kwargs = {"date": curday, "status": False, "count": 0}
             finally:
                 res = await self.logging_db(uow, kwargs)
-                print(res)
                 resulst.append(res)
-        
+        print(f"{resulst = }")
         return resulst
 
 
 
-
-
-
-
-
-    
 
 
 

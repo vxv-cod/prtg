@@ -7,17 +7,18 @@ from openpyxl import load_workbook
 from rich import print
 from sqlalchemy import select
 from DataBase.collections.db_models_repo import SensorsRepository, UserRepository
+from fastapi_cache.decorator import cache
+
 
 from DataBase.dependencies.dep_uow import DataBase_depend_UOW
 from DataBase.models.sensors import Sensors, TypeSensor
-from DataBase.repositories.repo_servises import DB_Service
+from DataBase.repositories.repo_service import DB_Service
 from DataBase.schemas.basemodel import Base_Model
 from prtg.prtg_schema import Prtg_schema_import_in_DB_id_Int
 
 from typing import Annotated, Any, Optional, Type
 
 from utils.import_zgd import load_zgd
-import utils.functions as my_func
 
 
 
@@ -88,12 +89,14 @@ class Api_DB_historydata(Api_Base):
     
 
         @self.router.get("/get_items_filter_by_users_zgd", tags=self.tags)
+        # @cache(expire=30)
         async def get_items_filter_by_users_zgd(uow: DataBase_depend_UOW):
             data = await self.service.get_all_filter(uow, filter_table_name = "user_zgd", model_col = "pk_name")
             return {"count": len(data), "data": data}
     
 
         @self.router.get("/get_items_filter_by_users_zgd_only_id", tags=self.tags)
+        # @cache(expire=30)
         async def get_items_filter_by_users_zgd_only_id(uow: DataBase_depend_UOW):
             data = await get_items_filter_by_users_zgd(uow)
             data = [i["id"] for i in data["data"]]
@@ -136,8 +139,9 @@ class Api_DB_user_zgd(Api_DB_default):
             file: Annotated[bytes, File()],
             background_tasks: BackgroundTasks,
         ):
-            background_tasks.add_task(self.service.upload_data_from_xlsx, uow, file, function=load_zgd)
-            return "Задачи выполняются в фоне"
+            # background_tasks.add_task(self.service.upload_data_from_xlsx, uow, file, function=load_zgd)
+            # return "Задачи выполняются в фоне"
+            return await self.service.upload_data_from_xlsx(uow, file, load_zgd)
 
 
         @self.router.get("/download_file_xlsx", tags=self.tags)

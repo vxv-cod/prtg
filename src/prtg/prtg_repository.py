@@ -134,4 +134,5 @@ class PrtgRepository:
         content: list[Prtg_schema_historydata_calculations] = [Prtg_schema_historydata_calculations.model_validate(i) for i in content]
         content = [i for i in content if i.avg_value != 0]
         content  = [i.model_dump() for i in content]
+        # print(f"{content[0] = }")
         return content

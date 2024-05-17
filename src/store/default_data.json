@@ -1,0 +1,19 @@
+{
+    "default_type_sensor" : [
+        {
+            "id": 0,
+            "type": "CPU",
+            "value": "Загрузка ЦП SNMP 1"
+        },
+        {
+            "id": 1,
+            "type": "HDD",
+            "value": "Disk Free: C"
+        },
+        {
+            "id": 2,
+            "type": "Memory",
+            "value": "Memory: Physical Memory"
+        }
+    ]
+}

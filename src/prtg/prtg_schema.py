@@ -31,6 +31,8 @@ class Prtg_schema_Sensor(DataBase_schema_sensor):
 
 
 
+
+
 class Prtg_schema_historydata_input(BaseModel):
     hours: int = 1
     stime: str = '08-00-00'
@@ -58,11 +60,29 @@ class Prtg_schema_historydata_input(BaseModel):
         return self            
 
     @computed_field
-    def delta_days(self) -> int:
+    def count_days(self) -> int:
         '''Вычисляемой поле (разница дат)'''
         res: datetime.timedelta = (self.edate - self.sdate)
-        return res.days
+        return res.days + 1
 
+
+
+class Schema_tasks_in(Prtg_schema_historydata_input):
+    sdate: datetime.date = Field(exclude=True, default=datetime.datetime.now().date() - datetime.timedelta(days=1))
+    edate: datetime.date = Field(exclude=True, default=datetime.datetime.now().date() - datetime.timedelta(days=1))
+
+    @computed_field
+    def list_days(self) -> list[datetime.date]:
+        '''Вычисляемой поле (спикок дат)'''
+        # count_days: datetime.timedelta = (self.edate - self.sdate)
+        return [self.sdate + datetime.timedelta(days=i) for i in range(self.count_days)]    
+
+
+class Schema_tasks_out(BaseModel):
+    hours: int
+    stime: str
+    etime: str
+    # day: list[datetime.date]
 
 
 class Prtg_schema_historydata_calculations(DataBase_schema_historydata):

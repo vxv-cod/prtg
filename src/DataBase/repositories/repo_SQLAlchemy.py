@@ -99,6 +99,7 @@ class SQLAlchemyRepository:
     
 
     async def save_in_db(self, data: list[dict]):
+        logger.debug("save_in_db")
         current_ids = await self.get_all_id()
         data_ids = [i["id"] for i in data]
         insert_list = []
@@ -114,7 +115,6 @@ class SQLAlchemyRepository:
             await self.update_list([row for row in data if row["id"] in update_list])
         if insert_list != []:
             await self.add_list([row for row in data if row["id"] in insert_list])
-
         return {"count": len(data), "insert_list": insert_list, "update_list": update_list}
     
 

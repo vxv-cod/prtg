@@ -1,3 +1,4 @@
+from DataBase.models.tasks import CeleryScheduler
 from DataBase.models.user_zgd import User_zgd
 from DataBase.repositories.repo_SQLAlchemy import SQLAlchemyRepository
 from DataBase.models.sensors import Sensors, TypeSensor
@@ -20,8 +21,9 @@ class TypeSensorRepository(SQLAlchemyRepository):
 class LoggingDownloadRepository(SQLAlchemyRepository):
     model = LoggingDownload
     
-
-
 class UserRepository(SQLAlchemyRepository):
     model = User_zgd
     
+
+class CelerySchedulerRepository(SQLAlchemyRepository):
+    model = CeleryScheduler

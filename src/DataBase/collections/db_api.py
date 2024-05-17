@@ -10,7 +10,7 @@ from DataBase.repositories.repo_api import (
     Api_DB_user_zgd,
     Api_DB_logging
 )
-from DataBase.repositories.repo_servises import DB_Service
+from DataBase.repositories.repo_service import DB_Service
 from DataBase.schemas.basemodel import Base_Model
 from DataBase.schemas.historydata import DB_schema_Log_hist_out, DB_schema_Log_hist_in, DataBase_schema_historydata
 from DataBase.schemas.sensors import DataBase_schema_sensor, DataBase_schema_type_sensor
@@ -50,6 +50,7 @@ api_type_sensor = Api_DB_type_sensor(
     typeid = int,
 )
 api_type_sensor.default_data = read_json("src\store\default_data.json")["default_type_sensor"]
+# api_type_sensor.default_data = read_json("store\default_data.json")["default_type_sensor"]
 
 
 api_logging_download = Api_DB_logging(

@@ -6,7 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from DataBase.db import Base
 from DataBase.schemas.sensors import DataBase_schema_type_sensor
 from prtg.prtg_schema import DataBase_schema_sensor
-# from .dep import intpk
 from DataBase.dependencies.dep_models import intpk
 
 
