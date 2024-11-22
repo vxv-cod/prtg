@@ -1,27 +1,16 @@
 @ECHO off 
-CALL python -V
-
-@REM Создаем переменную content с адресом proxy
-@REM call set /p content=< proxy_port.ini
-@REM Создаем переменную среду сеанса CMD pip_proxy (назвать можно и так: https_proxy, PIP_PROXY)
-@REM CALL set pip_proxy=%content%
-CALL set pip_proxy=http://tmn-tnnc-proxy.rosneft.ru:9090
-
-@REM Справка: Команда set (SET) читает переменные сеансы CMD и переменные среды пользователя
-
-@REM Варианты указания прокси:
-@REM ECHO Устанавка переменной среды пользователя PIP_PROXY через SETX ...
-@REM SETX PIP_PROXY http://tmn-tnnc-proxy.rosneft.ru:9090
-@REM ECHO Устанавка переменной среды PIP_CONFIG_FILE с ссылкой на pip.ini из текущей папки...
-@REM CALL SETX PIP_CONFIG_FILE %cd%\pip.ini
-
-@REM Создание файла конфигурации %APPDATA%\pip\pip.ini для установщика PIP
+chcp 65001
 IF NOT EXIST "%APPDATA%\pip\pip.ini" (
-	call pip config set global.trusted-host "pypi.python.org pypi.org files.pythonhosted.org"
-	call pip config set global.user false
-	@REM global.proxy нужна для работы pip (проверенная версия от 24.1.1)
-	call pip config set global.proxy %content%
-	@REM call python -m pip config debug	
+	@REM call pip config set global.trusted-host "pypi.python.org pypi.org files.pythonhosted.org"
+	@REM call pip config set global.user false
+	@REM @REM global.proxy нужна для работы pip (проверенная версия от 24.1.1)
+	@REM call pip config set global.proxy %content%
+
+	call pip config set global.disable-pip-version-check True
+	call pip config set global.index "https://nexus-tnnc/repository/python"
+	call pip config set global.index-url "https://nexus-tnnc/repository/python/simple"
+	call pip config set global.timeout 240
+	call pip config set global.trusted-host "nexus-tnnc"
 )
 
 IF NOT EXIST "%cd%\venv" (
@@ -29,7 +18,6 @@ IF NOT EXIST "%cd%\venv" (
 	@REM CALL python -m venv venv
 	CALL py -m venv venv
 )
-
 ECHO Активируем venv ...
 CALL venv\Scripts\activate.bat 
 ECHO Виртуальное окружение активировано: "%cd%\venv" ...
@@ -54,7 +42,4 @@ IF EXIST "%cd%\dev_requirements.txt" (
 	ECHO Для ручной установки пропишите команду: pip install Имя_пакета
 )
 
-@REM CALL pause
-@REM CALL deactivate
-cmd 
-
+cmd

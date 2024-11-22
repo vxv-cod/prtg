@@ -1,15 +1,19 @@
 __all__ = ["PRTG_Service"]
 import datetime
+from functools import wraps
 from time import time
+from typing import Annotated
+from fastapi import Depends
 
 from loguru import logger
 from rich import print
+from DataBase.models.historydata import LoggingDownload
 
 from DataBase.repositories.repo_service import DB_Service
 from DataBase.repositories.repo_uow import UnitOfWork
-from prtg.prtg_depends import Prtg_depend_UOW, Prtg_depend_historydata_input
 from prtg.prtg_uow import Prtg_UOW
-from prtg.prtg_schema import Prtg_schema_historydata_input
+from prtg.prtg_schema import Prtg_schema_historydata_input, Prtg_schema_historydata_input_OneDay
+
 
 # from tasks.tasks import celery_app
 
@@ -43,6 +47,8 @@ class PRTG_Service:
         self.DB_Service_historydata = DB_Service("historydata")
         self.DB_Service_logging_download = DB_Service("logging_download")
         self.DB_Service_user_zgd = DB_Service("user_zgd")
+        self.DB_Service_division = DB_Service("division")
+        
 
 
     def timer_(func):
@@ -56,6 +62,7 @@ class PRTG_Service:
 
     def async_with_uow_prg(func):
         '''Декоратор для контекстного менеджера'''
+        @wraps(func)
         async def wrapper(self, uow_prg, *args, **kwargs):
             async with uow_prg:
                 return await func(self, uow_prg, *args, **kwargs)
@@ -71,9 +78,11 @@ class PRTG_Service:
     @async_with_uow_prg
     async def prtg_get_historydata(self, uow_prg: Prtg_UOW, uow: UnitOfWork, items: Prtg_schema_historydata_input):
         sensors = await self.DB_Service_sensors.get_all(uow)
-        # sensors = sensors[-11:]
-        sensors = sensors[:50]
-        # print(f"{sensors[0] = }")
+        
+        '''УБРАТЬ ЭТУ СТРОКУ ------------------------------------------------'''
+        # sensors = sensors[:150]
+        '''------------------------------------------------------------------'''
+        
         return await uow_prg.query.historydata(sensors, items)
         
 
@@ -85,7 +94,6 @@ class PRTG_Service:
         }
         async with uow:
             current_logging = await uow.logging_download.get_all_id()
-            # logger.warning(current_logging)
             if current_logging != []:
                 if log_data["id"] in current_logging:
                     res = await uow.logging_download.update_one(log_data)
@@ -96,11 +104,27 @@ class PRTG_Service:
             else:
                 res = await uow.logging_download.add_one(log_data)
                 res = {"date": res, "status": "insert"}
-                # res = {"id": res, "status": "insert"}
-
-
-            await uow.commit()
+            await uow.session.flush()
+            # await uow.session.commit()
             return res
+
+
+    
+    async def add_zgd_divisions_in_history(self, uow: UnitOfWork, history_data):
+        logger.debug("Данные получены, обрабатываются . . .")
+        divisions = await uow.division.get_all()
+        user_zgd = await uow.user_zgd.get_all()                                               
+        res_list = []
+        for hist in history_data:
+            for use in user_zgd:
+                if hist["pk_name"] == use["id"]:
+                    for div in divisions:
+                        if use["description"] == div["name"]:
+                            hist["zgd_id"] = div["zgd_id"]
+                            hist["division_id"] = div["id"]
+            res_list.append(hist)            
+        logger.debug("Данные обработаны.")
+        return res_list
     
 
 
@@ -108,33 +132,7 @@ class PRTG_Service:
         data = await self.prtg_get_sensors(uow_prg, uow)
         return await self.DB_Service_sensors.save_in_db(uow, data)
     
-
-
-        
-        
-    # async def import_sensors_in_DB(self, uow_prg: Prtg_UOW, uow: UnitOfWork):
-    #     data = await self.prtg_get_sensors(uow_prg, uow)
-    #     print(f"{len(data) =}")
-    #     async with uow:        
-    #         users_id_list = await self.DB_Service_user_zgd.get_all_id(uow)
-    #         data_filter = [i for i in data if i["pk_name"] in users_id_list]
-    #         print(f"{len(data_filter) =}")
-
-    #         return [len(data_filter), data_filter]
-
-            # return await self.DB_Service_sensors.save_in_db(uow, data)
-        
-
-
-
-
-
-
-
-
-
-
-
+    
     # @timer_
     async def import_historydata_in_DB(self, uow_prg: Prtg_UOW, uow: UnitOfWork, items: Prtg_schema_historydata_input):
         '''Выбираем в интервале начальной и конечной даты (historydata) по дням и импортируем в ДБ с логами в таблицу'''
@@ -147,100 +145,83 @@ class PRTG_Service:
         for i in range(items.count_days):
             curday = items.sdate + datetime.timedelta(days = i)
             try:
-                obj_dict = {}
-                
                 _items = {"hours": hours, "stime": stime, "etime": etime,  "sdate": curday}
                 import_data = Prtg_schema_historydata_input(**_items)
 
-                data = await self.prtg_get_historydata(uow_prg, uow, import_data)
-                obj_dict =  await self.DB_Service_historydata.save_in_db(uow, data)
+                history_data = await self.prtg_get_historydata(uow_prg, uow, import_data)
+                
+                async with uow:
+                    history_data = await self.add_zgd_divisions_in_history(uow, history_data)
+                
+                result_save =  await self.DB_Service_historydata.save_in_db(uow, history_data)
 
                 status = True
-                kwargs = {"date": curday, "status": status, **obj_dict}
+                kwargs = {"date": curday, "status": status, **result_save}
             except:
                 kwargs = {"date": curday, "status": False, "count": 0}
             finally:
                 res = await self.logging_db(uow, kwargs)
                 resulst.append(res)
+                await uow.session.commit()
         print(f"{resulst = }")
         return resulst
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # if delta.list_id_update != []:
-        #     update_list = await self.update_list([row for row in data if row["id"] in delta.list_id_update])
-        # if delta.list_id_insert != []:
-        #     insert_list = await self.add_list([row for row in data if row["id"] in delta.list_id_insert])
-
-        # return await self.DB_Service_logging_download.save_in_db(uow, log_data)
-    
-    
-        # async with uow:
-        #     current_logging = await uow.logging_download.get_all()
-        #     logger.debug(current_logging)
-        #     if current_logging != []:
-
+    async def import_historydata_task_body(self, uow_prg: Prtg_UOW, uow: UnitOfWork,
+        items: Annotated[Prtg_schema_historydata_input_OneDay, Depends()]):
         
-        # async with uow:
-        #     ddd = LoggingDownload(**log_data)
-        #     logger.debug(ddd.id)
-        #     uow.session.add(ddd)
-        #     await uow.session.commit()
+        items = Prtg_schema_historydata_input_OneDay(**items)
+        sdate = items.sdate
 
-        # return ddd
-        # async with uow:
-        #     current_logging = await uow.logging_download.get_all()
-        #     logger.warning(current_logging)
-        #     if current_logging != []:
-        #         for i in current_logging:
-        #             data_dict = {"id": i["id"], **log_data}
-        #             logger.debug(log_data)
-        #             if i["date_of_the_data"] == items.sdate:
-        #                 await uow.logging_download.update_one(data_dict)
-        #             else:
-        #                 await uow.logging_download.add_list(data_dict)
-        #         else:
-        #             data_dict = {"id": 0, **log_data}
-        #             logger.debug(log_data)
-                    
-        #             await uow.logging_download.add_list(data_dict)
+        log_data = dict(id = sdate, status = False, count_sensors = 0)
+        async with uow:
+            sensors = await uow.sensors.get_all()
+            # sensors = sensors[:10]
+        history_data = None
 
-        #     await uow.commit()
-        #     return data_dict
+        async with uow_prg:
+            history_data = await uow_prg.query.historydata(sensors, items)
+
+        async with uow:
+            save_history = {"count": 0}
+            logsdb = None
+
+            if history_data:
+                history_data = await self.add_zgd_divisions_in_history(uow, history_data)
+                save_history = await uow.historydata.save_in_db(history_data)
+                log_data.update(status = True, count_sensors = save_history["count"])
+            
+            logsdb = await uow.session.get(LoggingDownload, sdate)
+            if not logsdb:
+                res = await uow.logging_download.add_one(log_data)
+                response = {"date": res, "status": "insert"}
+            else:
+                res = await uow.logging_download.update_one(log_data)
+                response = {"date": res, "status": "update"}
+            logger.success(f"response: {response}")
+            await uow.commit()  
+            return response  
+    
 
 
+    async def historydata_unit(self, uow_prg: Prtg_UOW, uow: UnitOfWork,
+        items: Annotated[Prtg_schema_historydata_input, Depends()],
+        sensors: int
+        ):
+        # 14680
+        # 2024-01-02
+        # logger.debug(f"{items = }") 
+        items = Prtg_schema_historydata_input_OneDay(**items.model_dump())
+        logger.debug(f"{items = }") 
 
+        async with uow:
+            sensors = await uow.sensors.get_one(sensors)
+        logger.debug(f"{sensors = }") 
 
-
-        '''Другой вариант кода'''
-        # async with uow:
-        #     sensors = await uow.sensors.get_all()
-        #     sensors = sensors[:10]
-
-        # async with uow_prg:
-        #     historydata = await uow_prg.query.historydata(sensors, items)
-        #     data  = [i.model_dump() for i in historydata]
+        async with uow_prg:
+            history_data = await uow_prg.query.historydata([sensors], items)
+        # logger.debug(f"{history_data = }") 
         
-        # async with uow:
-        #     res = await uow.historydata.save_in_db(data)
-        #     await uow.commit()
-        #     return res        
-
-
+        return history_data  
+    

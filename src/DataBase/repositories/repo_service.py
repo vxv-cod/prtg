@@ -2,7 +2,7 @@ import io
 from sqlalchemy import delete
 from loguru import logger
 from fastapi_cache.decorator import cache
-
+from rich import print
 
 from DataBase.repositories.repo_uow import UnitOfWork
 from DataBase.repositories.repo_SQLAlchemy import SQLAlchemyRepository
@@ -135,10 +135,60 @@ class DB_Service:
     #     await uow.commit()
     #     return res
     
-    async def upload_data_from_xlsx(self, uow, file, function):
+    async def upload_data_from_xlsx(self, uow: UnitOfWork, file, function):
         '''Полчение файла от фронта, обработка данных по function и помещение данных в ДБ'''
         data = function(io.BytesIO(file))
+        res = await self.save_in_db(uow, data)
         
-        return await self.save_in_db(uow, data)
+        return res
+    
+    async def default_from_xlxs(self, uow: UnitOfWork, function):
+        '''Полчение файла от фронта, обработка данных по function и помещение данных в ДБ'''
+        data = function()
+        res = await self.save_in_db(uow, data)
+        
+        return res
 
 
+
+
+
+
+    @async_with_uow
+    async def set_division_id_in_history(self, uow: UnitOfWork):
+        '''Корректируем поля division в historydata'''
+        table_divisions: SQLAlchemyRepository = getattr(uow, "division")
+        divisions = await table_divisions.get_all()
+        # print(divisions)
+        
+        table_user_zgd: SQLAlchemyRepository = getattr(uow, "user_zgd")
+        user_zgd = await table_user_zgd.get_all()
+        print(user_zgd[0])
+
+        historydata = await self.uow_attr(uow).get_all()
+        res_list = []
+        for hist in historydata:
+            for use in user_zgd:
+                if hist["pk_name"] == use["id"]:
+                    for div in divisions:
+                        if use["description"] == div["name"]:
+                            hist["zgd_id"] = div["zgd_id"]
+                            hist["division_id"] = div["id"]
+                            res_list.append(hist)
+        print("Данные обработаны")
+        res = await self.save_in_db(uow, res_list)
+        return res
+                            
+        # return "Изменение division_id завершено"
+
+    
+    
+    
+
+
+        # table_id_list: SQLAlchemyRepository = getattr(uow)
+        # filter_list = await table_id_list.get_all_id()
+        # '''Получение строк из списка id строк'''
+        # repo = self.uow_attr(uow)
+        # model_col = getattr(repo.model, model_col)
+        # return await repo.get_all_filter(model_col, filter_list)

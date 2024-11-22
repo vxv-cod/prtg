@@ -18,7 +18,7 @@ from prtg.prtg_schema import Prtg_schema_import_in_DB_id_Int
 
 from typing import Annotated, Any, Optional, Type
 
-from utils.import_zgd import load_zgd
+from utils.import_zgd import set_user_zgd, save_file, set_division, set_zgd
 
 
 
@@ -83,9 +83,6 @@ class Api_DB_sensors(Api_DB_default):
 class Api_DB_historydata(Api_Base):
     def __init__(self, prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid):
         super().__init__(prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid)
-
-
-
     
 
         @self.router.get("/get_items_filter_by_users_zgd", tags=self.tags)
@@ -101,12 +98,13 @@ class Api_DB_historydata(Api_Base):
             data = await get_items_filter_by_users_zgd(uow)
             data = [i["id"] for i in data["data"]]
             return {"count": len(data), "data": data}
+        
 
+        @self.router.get("/set_division_id_in_history", tags=self.tags)
+        async def set_division_id_in_history(uow: DataBase_depend_UOW):
+            return await self.service.set_division_id_in_history(uow)
 
-
-
-
-
+        
 
 
 
@@ -116,15 +114,8 @@ class Api_DB_type_sensor(Api_DB_default):
         super().__init__(prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid)
 
 
-        # @self.router.put("/save_in_db", tags=self.tags, 
-        #                  response_model = Prtg_schema_import_in_DB_id_Int)
-        # async def save_in_db(uow: DataBase_depend_UOW, data: list[self.db_shama_in]):
-        #     return await self.service.save_in_db(uow, self.dto_in_py(data))
-
-
-        @self.router.post("/default", tags=self.tags,
-                         response_model = Prtg_schema_import_in_DB_id_Int)
-        async def default(uow: DataBase_depend_UOW):
+        @self.router.get("/default_type_sensor", tags=["default"], response_model = Prtg_schema_import_in_DB_id_Int)
+        async def default_type_sensor(uow: DataBase_depend_UOW):
             return await self.service.save_in_db(uow, self.default_data)
             
 
@@ -133,19 +124,48 @@ class Api_DB_user_zgd(Api_DB_default):
         super().__init__(prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid)
 
 
-        @self.router.post("/upload_file_xlsx", tags=self.tags)
-        async def upload_file_xlsx(
-            uow: DataBase_depend_UOW, 
-            file: Annotated[bytes, File()],
-            background_tasks: BackgroundTasks,
-        ):
-            # background_tasks.add_task(self.service.upload_data_from_xlsx, uow, file, function=load_zgd)
-            # return "Задачи выполняются в фоне"
-            return await self.service.upload_data_from_xlsx(uow, file, load_zgd)
+        @self.router.get("/default_from_xlxs", tags=["default"])
+        async def default_from_xlxs(uow: DataBase_depend_UOW):
+            return await self.service.default_from_xlxs(uow, set_user_zgd)
+        
+
+
+        # @self.router.post("/upload_file_xlsx", tags=["default"])
+        # async def upload_file_xlsx(
+        #     uow: DataBase_depend_UOW, 
+        #     file: Annotated[bytes, File()],
+        #     background_tasks: BackgroundTasks,
+        # ):
+        #     # background_tasks.add_task(self.service.upload_data_from_xlsx, uow, file, function=set_user_zgd)
+        #     # return "Задачи выполняются в фоне"
+        #     return await self.service.upload_data_from_xlsx(uow, file, set_user_zgd)
+
+
+
+
+
 
 
         @self.router.get("/download_file_xlsx", tags=self.tags)
         async def download_file_xlsx(filename: str):
+            some_file_path = f'src/store/{filename}'
+            headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+            return FileResponse(path=some_file_path, headers=headers)
+                        
+
+class Api_DB_files():
+    def __init__(self, prefix, tags):
+        self.tags = tags
+        self.router = APIRouter(prefix = prefix)
+
+        @self.router.post("/upload_file", tags=self.tags)
+        async def upload_file(file: UploadFile, ):
+            save_file(file)
+            return f"{file.filename} - загружен в хранилице store"
+        
+        # ZGD_111.xlsx
+        @self.router.get("/download_file", tags=self.tags)
+        async def download_file(filename: str):
             some_file_path = f'src/store/{filename}'
             headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
             return FileResponse(path=some_file_path, headers=headers)
@@ -157,130 +177,38 @@ class Api_DB_user_zgd(Api_DB_default):
 
 
 
+class Api_DB_zgd(Api_DB_default):
+    def __init__(self, prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid):
+        super().__init__(prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid)
+
+        @self.router.get("/default_from_xlxs", tags=["default"])
+        async def default_from_xlxs(uow: DataBase_depend_UOW):
+            return await self.service.default_from_xlxs(uow, set_zgd)
+
+
+class Api_DB_division(Api_DB_default):
+    def __init__(self, prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid):
+        super().__init__(prefix, tags, attr_uow_name, db_shama_in, db_shama_out, typeid)
+
+        @self.router.get("/default_from_xlxs", tags=["default"])
+        async def default_from_xlxs(uow: DataBase_depend_UOW):
+            return await self.service.default_from_xlxs(uow, set_division)
 
 
 
+'''
+# background_tasks: BackgroundTasks
 
+В методе с File мы получаем на выходе только байт-строку.
+# file: Annotated[bytes, File()], # метод нужен для получения байт файла
 
-
-
-
-        # @self.router.post("/upload_file_xlsx_test", tags=self.tags)
-        # async def upload_file_xlsx_test(
-        #     uow: DataBase_depend_UOW, 
-        #     file: Annotated[bytes, File()],
-        #     background_tasks: BackgroundTasks, 
-        # ):
-        #     # return await self.service.save_in_db(uow, load_zgd(io.BytesIO(file)))
-
-        #     background_tasks.add_task(self.service.save_in_db, uow, load_zgd(io.BytesIO(file)))
-        #     return "Задачи выполняются в фоне"
-
-
-
-
-
-
-
-        # @self.router.post("/upload_file_xlsx_test", tags=self.tags)
-        # async def upload_file_xlsx_test(uow: DataBase_depend_UOW, file: Annotated[bytes, File()]):
-            # import tempfile
-            # with tempfile.NamedTemporaryFile(mode="w+b", suffix=".xlsx", delete=False) as temp_file:
-            #     temp_file.write(file)            
-            #     data = load_zgd(temp_file)
-            # return await self.service.save_in_db(uow, data)
-
-
-
-
-
-
-
-
-            # print(UploadFile.file.read())
-            # buffer = io.BytesIO()
-            # with UploadFile.file as temp_file:
-            #     temp_file.write(buffer.getvalue())
-            #     print(f"{buffer.getvalue()}")
-            # xxx = load_zgd(temp_file.name)
-            # print(xxx)
-
-            # load_zgd(UploadFile.file.name)
-            
-            # temp_file.write(buffer.getvalue())
-            # buffer = io.BytesIO()
-            # file.file(mode="w+b", suffix=".xlsx", delete=False)
-            # file.write(buffer.getvalue())
-            # print(UploadFile.__dict__)
-            # xxx = load_zgd(UploadFile.file)
-            # print(xxx)
-            
-
-            return "dddddd"
-
-
-            # return await self.service.save_in_db(uow, UploadFile.file.name)
-
-
-
-            # await file.SpooledTemporaryFile
-            # buffer = io.BytesIO()
-            # '''Сохранение документа в буфер обмена'''
-            # # file.save(buffer)
-            # buffer.seek(0)
-
-            # data = load_zgd(buffer)
-            # return data
-            # return await self.service.save_in_db(uow, data)
-        
-
-
-
-
-        # async def add_from_xlsx(uow: DataBase_depend_UOW, data: load_zgd = Depends()):
-        # async def add_from_xlsx(uow: DataBase_depend_UOW, file: Annotated[UploadFile, File()]):
-        # async def add_from_xlsx(uow: DataBase_depend_UOW, file: UploadFile):
-        #     print(f"{file.headers = }")
-        #     print(f"{file.content_type = }")
-        #     print(f"{file.content_type = }")
-
-        #     xxx = load_zgd(file)
-        #     # print(f"{await file.read() = }")
-        #     return {"filename": file.filename}
-
-
-
-
-
-
+Метод UploadFile несколько более интересный в плане параметров, он имеет их целый набор.
+Хочешь взять имя отправленного файла? 
+file.filename
+Нужен сам файл, а не его байты? 
+file.file
+Нужны байты?
+file.file.read()
+'''
 
         
-        
-        # @self.router.delete("/delete_list", tags=self.tags)
-        # async def delete_list(uow: DataBase_depend_UOW, data: list[int]):
-        #     return await self.service.delete_list(uow, data)
-        
-
-        # @self.router.get("/get_all_id")
-        # async def get_all_id(uow: DataBase_depend_UOW):
-        #     return await self.service.get_all_id(uow)
-
-
-        # @self.router.post("/add_one")
-        # async def add_one(uow: DataBase_depend_UOW, data: self.db_shama):
-        #     return await self.service.add_one(uow, data.model_dump())
-
-
-        # @self.router.post("/add_list", tags=self.tags)
-        # async def add_list(uow: DataBase_depend_UOW, data: list[self.db_shama]):
-        #     return await self.service.add_list(uow, [row.model_dump() for row in data])
-
-
-        # @self.router.put("/update_one")
-        # async def update_one(uow: DataBase_depend_UOW, data: self.db_shama):
-        #     return await self.service.update_one(uow, data.model_dump())
-
-
-        # @self.router.put("/update_list", tags=self.tags)
-        # async def update_list(uow: DataBase_depend_UOW, data: list[self.db_shama]):
-        #     return await self.service.update_list(uow, self.dto_in_py(data))

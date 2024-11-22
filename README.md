@@ -1,7 +1,5 @@
 ## О проекте
-[Видео о луковой архитектуре](https://www.youtube.com/watch?v=8Im74b55vFc)  
-[Видео о паттерне Unit of work](https://www.youtube.com/watch?v=TaYg23VkCRI)
-
+...
 
 ### Запуск приложения
 1. Создать виртуальное окружение и установить зависимости
@@ -42,7 +40,7 @@ alembic downgrade base
 
 ---
 # Запуск и настройка PostgreSQL
-
+0. Переходим в папку: `C:\Program Files\PostgreSQL\16\data`
 1.  Первоначально необходимо изменить конфигурационные файлы ***postgresql.conf*** и ***pg_hba.conf*** в директории, куда установлена база данных:
     - **postgresql.conf:**
         *Изменить*
@@ -66,7 +64,7 @@ alembic downgrade base
 3. После этого запускаем меню пуск - `postgresql 11 - SQL bash (psql)` или `SQL Shell (psql)`
     - Все значения по-умолчанию, просто нажимаем enter, вводим пароль для пользователя postgres
     - Создаем базу данных: `create database demo_01;`
-    - Сразу создаем в базе схему **stack**: `create schema stack;`
+    <!-- - Сразу создаем в базе схему **stack**: `create schema stack;` -->
     - Создаем пользователей DataBase_owner и SA, необходимых для работы базы данных и даем им все необходимые права суперюзера:
         ```
         create role DataBase_owner;`

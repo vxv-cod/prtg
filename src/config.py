@@ -63,6 +63,7 @@ class Settings:
         self.REDIS_URL: str = os.getenv("REDIS_URL")
         self.TIMEZONE: str = os.getenv("TIMEZONE")
         self.BEAT_DBURL: str = os.getenv("BEAT_DBURL")
+        self.BEAT_RESULT: str = os.getenv("BEAT_RESULT")
         self.FLOWER_PORT: str = os.getenv("FLOWER_PORT")
 
 

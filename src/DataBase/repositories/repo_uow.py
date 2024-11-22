@@ -3,7 +3,7 @@ __all__ = ["UnitOfWork"]
 from typing import Type
 
 from DataBase.db import async_session_maker
-from DataBase.collections.db_models_repo import CelerySchedulerRepository, SensorsRepository, TypeSensorRepository, LoggingDownloadRepository, UserRepository
+from DataBase.collections.db_models_repo import DivisionRepository, SensorsRepository, TypeSensorRepository, LoggingDownloadRepository, UserRepository, ZgdRepository
 from DataBase.collections.db_models_repo import HistorydataRepository
 
 
@@ -14,7 +14,7 @@ class UnitOfWork:
     sensors = Type[SensorsRepository]
     historydata = Type[HistorydataRepository]
     user_zgd = Type[UserRepository]
-    celery_scheduler = Type[CelerySchedulerRepository]
+    logging_download = Type[LoggingDownloadRepository]
 
         
     def __init__(self):
@@ -29,7 +29,8 @@ class UnitOfWork:
         self.type_sensor = TypeSensorRepository(self.session)
         self.logging_download = LoggingDownloadRepository(self.session)
         self.user_zgd = UserRepository(self.session)
-        self.celery_scheduler = CelerySchedulerRepository(self.session)
+        self.division = DivisionRepository(self.session)
+        self.zgd = ZgdRepository(self.session)
 
     async def __aexit__(self, *args):
         await self.rollback()
@@ -41,4 +42,5 @@ class UnitOfWork:
 
     async def rollback(self):
         await self.session.rollback()
+
 

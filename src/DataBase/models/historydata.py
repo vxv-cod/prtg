@@ -7,7 +7,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from DataBase.db import Base
 from DataBase.schemas.historydata import DB_schema_Log_hist_out, DataBase_schema_historydata
-from prtg.prtg_schema import Prtg_schema_historydata_calculations
 from DataBase.dependencies.dep_models import strpk, intpk, created_at, updated_at, datepk
 from sqlalchemy import text
 
@@ -21,6 +20,10 @@ class Historydata(Base):
     pydantic_schema = DataBase_schema_historydata
 
     id: Mapped[strpk]
+    
+    zgd_id: Mapped[int | None] = mapped_column(ForeignKey("zgd.id", ondelete="CASCADE"))
+    division_id: Mapped[int | None] = mapped_column(ForeignKey("division.id", ondelete="CASCADE"))
+    # division_id: Mapped[int | None]
     date: Mapped[datetime.date]
     pk_name: Mapped[str]
     sensor_id: Mapped[int] = mapped_column(ForeignKey("sensors.id", ondelete="CASCADE"))

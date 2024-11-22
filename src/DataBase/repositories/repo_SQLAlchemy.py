@@ -99,7 +99,6 @@ class SQLAlchemyRepository:
     
 
     async def save_in_db(self, data: list[dict]):
-        logger.debug("save_in_db")
         current_ids = await self.get_all_id()
         data_ids = [i["id"] for i in data]
         insert_list = []

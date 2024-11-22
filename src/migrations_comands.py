@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # migrate_downgrade_base(alembic_cfg)
     # migrate_downgrade(alembic_cfg)
     
-    create_migrate_revision(alembic_cfg, name_revision)
+    # create_migrate_revision(alembic_cfg, name_revision)
     migrate_upgrade(alembic_cfg)
 
 

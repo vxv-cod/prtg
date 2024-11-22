@@ -4,8 +4,10 @@ import datetime
 from pydantic import BaseModel, Field, computed_field, model_validator
 from loguru import logger
 from DataBase.schemas.historydata import DataBase_schema_historydata
-
 from DataBase.schemas.sensors import DataBase_schema_sensor
+
+# from DataBase.repositories.repo_uow import UnitOfWork
+# from prtg.prtg_uow import Prtg_UOW
 
 
 
@@ -31,6 +33,13 @@ class Prtg_schema_Sensor(DataBase_schema_sensor):
 
 
 
+
+
+class Prtg_schema_historydata_input_OneDay(BaseModel):
+    hours: int = 1
+    stime: str = '08-00-00'
+    etime: str = '18-00-00'
+    sdate: str | datetime.date = datetime.datetime.now().date() - datetime.timedelta(days=1)
 
 
 class Prtg_schema_historydata_input(BaseModel):
@@ -66,23 +75,9 @@ class Prtg_schema_historydata_input(BaseModel):
         return res.days + 1
 
 
-
-class Schema_tasks_in(Prtg_schema_historydata_input):
-    sdate: datetime.date = Field(exclude=True, default=datetime.datetime.now().date() - datetime.timedelta(days=1))
-    edate: datetime.date = Field(exclude=True, default=datetime.datetime.now().date() - datetime.timedelta(days=1))
-
-    @computed_field
-    def list_days(self) -> list[datetime.date]:
-        '''Вычисляемой поле (спикок дат)'''
-        # count_days: datetime.timedelta = (self.edate - self.sdate)
-        return [self.sdate + datetime.timedelta(days=i) for i in range(self.count_days)]    
+ 
 
 
-class Schema_tasks_out(BaseModel):
-    hours: int
-    stime: str
-    etime: str
-    # day: list[datetime.date]
 
 
 class Prtg_schema_historydata_calculations(DataBase_schema_historydata):
@@ -108,8 +103,9 @@ class Prtg_schema_historydata_calculations(DataBase_schema_historydata):
 
             if stime_obj_datatime <= date_time_obj <= etime_obj_datatime:
                 val = obj[search]
-                val = 0 if val == '' else val
-                if val != 0 or val != '':
+                if val == '':
+                    val = 0
+                if val != 0:
                     total_list.append(val)
     
         return total_list, str_date
@@ -135,13 +131,15 @@ class Prtg_schema_historydata_calculations(DataBase_schema_historydata):
         
         [total_list, str_date] = sre_date_time
         
-        data["date"] : str = datetime.datetime.strptime(str_date, '%Y.%m.%d')
-        data["id"] : str = f"{str_date} - {data['sensor_id']}"
+        data["date"] = datetime.datetime.strptime(str_date, '%Y.%m.%d')
+        data["id"] = f"{str_date} - {data['sensor_id']}"
+
         if total_list != []:
-            data["max_value"] : float = round(max(total_list), 4)
-            data["avg_value"] : float = 0 if len(total_list) == 0 else round(sum(total_list)/len(total_list), 4)
-            data["min_value"] : float = round(min(total_list), 4)
-        
+            data["max_value"] = round(max(total_list), 4)
+            data["min_value"] = round(min(total_list), 4)
+            # data["avg_value"] : float = 0 if len(total_list) == 0 else round(sum(total_list)/len(total_list), 4)
+            data["avg_value"] = round(sum(total_list)/len(total_list), 4)
+            # logger.debug(f"{total_list = }")
         return data
     
 class Prtg_schema_historydata_headers(BaseModel):
@@ -151,6 +149,18 @@ class Prtg_schema_historydata_headers(BaseModel):
     stime: str | None = None
     etime: str | None = None
     histdata: list = []
+
+
+
+# class Schema_import_history_in(BaseModel):
+#     day: datetime.date
+#     hours: int
+#     stime: str
+#     etime: str
+#     uow_prg: Prtg_UOW
+#     uow: UnitOfWork
+
+
 
 
 '''Примеры кода'''

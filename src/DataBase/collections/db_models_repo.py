@@ -1,5 +1,6 @@
-from DataBase.models.tasks import CeleryScheduler
+from DataBase.models.division import Division
 from DataBase.models.user_zgd import User_zgd
+from DataBase.models.zgd import Zgd
 from DataBase.repositories.repo_SQLAlchemy import SQLAlchemyRepository
 from DataBase.models.sensors import Sensors, TypeSensor
 from DataBase.models.historydata import Historydata, LoggingDownload
@@ -24,6 +25,11 @@ class LoggingDownloadRepository(SQLAlchemyRepository):
 class UserRepository(SQLAlchemyRepository):
     model = User_zgd
     
-
-class CelerySchedulerRepository(SQLAlchemyRepository):
-    model = CeleryScheduler
+    
+class DivisionRepository(SQLAlchemyRepository):
+    model = Division
+    
+    
+class ZgdRepository(SQLAlchemyRepository):
+    model = Zgd
+    

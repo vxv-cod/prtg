@@ -4,7 +4,6 @@ from typing import Annotated
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import text
-from enum import Enum
 
 
 '''Поля DataBase'''
@@ -27,6 +26,4 @@ updated_at = Annotated[datetime.datetime, mapped_column(
 )]
 
 
-class DegreeType(Enum):
-    newbie = "newbie"
-    expert = "expert"
+

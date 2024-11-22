@@ -19,14 +19,15 @@ from DataBase.dependencies.dep_uow import DataBase_depend_UOW
 
 
 
+
 router = APIRouter(
     prefix="/prtg",
     tags=["Prtg:"],
 )
 
-@router.get("/import_sensors_in_DB", 
-            # response_model = Prtg_schema_import_in_DB_id_Int
-            )
+
+@router.get("/import_sensors_in_DB", tags=["default"])
+# response_model = Prtg_schema_import_in_DB_id_Int
 async def import_sensors_in_DB(uow_prg: Prtg_depend_UOW, uow: DataBase_depend_UOW):
     return await PRTG_Service().import_sensors_in_DB(uow_prg, uow)
 
@@ -54,6 +55,13 @@ async def import_historydata_in_DB(
 # ):
 #     return await PRTG_Service().add_task.delay()
 
+@router.get("/historydata_unit")
+async def historydata_unit(
+    uow_prg: Prtg_depend_UOW, 
+    uow: DataBase_depend_UOW,
+    items: Prtg_depend_historydata_input,
+    sensors: int, 
 
-
+    ):
+    return await PRTG_Service().historydata_unit(uow_prg, uow, items, sensors)
 

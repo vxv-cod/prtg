@@ -1,20 +1,19 @@
 import datetime
-from typing import Type
-from fastapi import APIRouter, Depends
-from DataBase.dependencies.dep_uow import DataBase_depend_UOW
-from DataBase.models.historydata import LoggingDownload
 from DataBase.repositories.repo_api import (
+    Api_DB_division,
+    Api_DB_files,
     Api_DB_sensors,
     Api_DB_historydata, 
     Api_DB_type_sensor, 
     Api_DB_user_zgd,
-    Api_DB_logging
+    Api_DB_logging,
+    Api_DB_zgd
 )
-from DataBase.repositories.repo_service import DB_Service
-from DataBase.schemas.basemodel import Base_Model
+from DataBase.schemas.division import DataBase_schema_division
 from DataBase.schemas.historydata import DB_schema_Log_hist_out, DB_schema_Log_hist_in, DataBase_schema_historydata
 from DataBase.schemas.sensors import DataBase_schema_sensor, DataBase_schema_type_sensor
 from DataBase.schemas.user_zgd import DataBase_schema_user_zgd
+from DataBase.schemas.zgd import DataBase_schema_zgd
 from utils.functions import read_json
 
 
@@ -71,5 +70,32 @@ api_user_zgd = Api_DB_user_zgd(
     db_shama_in = DataBase_schema_user_zgd,
     db_shama_out = DataBase_schema_user_zgd,
     typeid = str,
+)
+
+
+api_division = Api_DB_division(
+    prefix = "/DataBase/division", 
+    tags = ["DataBase: division"], 
+    attr_uow_name = "division",
+    db_shama_in = DataBase_schema_division,
+    db_shama_out = DataBase_schema_division,
+    typeid = int,
+)
+
+
+
+api_zgd = Api_DB_zgd(
+    prefix = "/DataBase/zgd", 
+    tags = ["DataBase: zgd"], 
+    attr_uow_name = "zgd",
+    db_shama_in = DataBase_schema_zgd,
+    db_shama_out = DataBase_schema_zgd,
+    typeid = int,
+)
+
+
+api_files = Api_DB_files(
+    prefix = "/files", 
+    tags = ["files"], 
 )
 

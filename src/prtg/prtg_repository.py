@@ -1,9 +1,6 @@
 import asyncio
-import datetime
 from time import time
-from typing import Annotated
 from fastapi import Depends, HTTPException
-from fastapi.responses import JSONResponse
 from rich import print
 
 from httpx import AsyncClient, Limits, Timeout
@@ -131,8 +128,10 @@ class PrtgRepository:
             else:
                 raise HTTPException(status_code=response.status_code, detail={"response" : response, "id" : request_headers["sensor_id"]})
 
+        # print(f"{content}")
         content: list[Prtg_schema_historydata_calculations] = [Prtg_schema_historydata_calculations.model_validate(i) for i in content]
         content = [i for i in content if i.avg_value != 0]
         content  = [i.model_dump() for i in content]
         # print(f"{content[0] = }")
+        
         return content

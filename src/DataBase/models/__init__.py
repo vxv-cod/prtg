@@ -3,5 +3,6 @@ from . import (
     sensors,
     historydata,
     user_zgd,
-    tasks
+    division,
+    zgd
 )

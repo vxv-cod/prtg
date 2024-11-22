@@ -20,6 +20,10 @@ def datetime_to_string(date_time: datetime.datetime, format: str = '%Y-%m-%d') -
 
 class DataBase_schema_historydata(Base_Model):
     id: str = "str_date - sensor_id"
+    
+    zgd_id: int | None = None
+    division_id: int | None = None
+    
     date: datetime.date
     pk_name: str = "pk_name"
     sensor_id: int | None = None

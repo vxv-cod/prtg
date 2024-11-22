@@ -1,12 +1,12 @@
-__all__ = ["Sensors", "TypeSensor"]
+__all__ = ["User_zgd"]
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from DataBase.db import Base
-from DataBase.schemas.user_zgd import DataBase_schema_user_zgd
 # from .dep import intpk
 from DataBase.dependencies.dep_models import strpk
+from DataBase.schemas.user_zgd import DataBase_schema_user_zgd
 
 
 
